@@ -10,10 +10,10 @@ Folder Structure
 
 Files & Executables
 -------------------
-dbGenerator.py		- After images has been processed, this will generate the matlab file with formatted lists of images
-img_list.dev.txt 	- List containing all the images to be processed by OSIRIS, W/full paths
-img_list.srv.txt 	- Same as previous
-osiris_current_img.txt - Contains the filename of the current image to process with OSIRIS
-osiris.exe 				-	OSIRIS_4_1 executable
-osiris_gen.py			- Python script reading the image file list and processing the OSIRIS_4_1 with different config files
-README.md					- This file
+* dbGenerator.py		- After images has been processed, this will generate the matlab file with formatted lists of images
+* img_list.dev.txt 	- List containing all the images to be processed by OSIRIS, W/full paths
+* img_list.srv.txt 	- Same as previous
+* osiris_current_img.txt - Contains the filename of the current image to process with OSIRIS
+* osiris.exe 				-	OSIRIS_4_1 executable
+* osiris_gen.py			- Python script reading the image file list and processing the OSIRIS_4_1 with different config files
+* README.md					- This file
