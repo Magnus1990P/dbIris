@@ -2,11 +2,11 @@
 
 Folder Structure
 ----------------
-/								- contains all files and executables to be used
-/db_periocular/ - contains folders for different sets of images
-/img_processed/ - contains all images stored by OSIRIS_4_1
-/osiris_4_1/		- contains the OSIRIS_4_1 source code program
-/osiris_conf/		- contains all configuration files for OSIRIS_4_1
+* /								- contains all files and executables to be used
+* /db_periocular/ - contains folders for different sets of images
+* /img_processed/ - contains all images stored by OSIRIS_4_1
+* /osiris_4_1/		- contains the OSIRIS_4_1 source code program
+* /osiris_conf/		- contains all configuration files for OSIRIS_4_1
 
 Files & Executables
 -------------------
