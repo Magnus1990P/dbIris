@@ -20,6 +20,7 @@ confType			= "SMALL"
 imageCounter	= 0
 imageFails		= 0
 fileListName	= ""
+preConf				= "dev_"
 regExp 				= {'ERROR':re.compile("Segmentation|fault|Error|" + 	#
 																		"error|ERROR|SIGKILL|" 			+		#
 																		"cannot|Cannot"),								#
@@ -37,8 +38,9 @@ if len( sys.argv ) != 3:																			#
 fileListName = str( sys.argv[1] )
 
 if sys.argv[2].lower() == 'server':														#If server
-	scriptPath = "/home/jollyjackson/Desktop/iris_qa/"					#	path to configs
-	orgImgPath = "/home/jollyjackson/Development/iris_img_db/"	#	path to images
+	scriptPath 	= "/dbIris/osiris_conf/"					#	path to configs
+	orgImgPath 	= "/dbIris/db_periocular/"	#	path to images
+	preConf			= "srv_"
 	
 processedFile = open( saveFile, 	"a"  )											#w processed imgs
 currentImage	= open( curFileImg, "r+" )											#rw cur img
@@ -71,17 +73,17 @@ for image in imageList.readlines( ):													#
 	while configNumber < 3 and osirisResult == "FAIL":							#Loop configs
 		if configNumber == 0:																					#Try config
 			cmd 			= [	"./osiris.exe", scriptPath + 									#	for small
-										"dev_osiris_sm.conf"]													#	irises<F10>
+										preConf + "osiris_sm.conf"]										#	irises
 			confType= "SMALL"																						#
 
 		elif configNumber == 1:																				#Try config
 			cmd 			= [	"./osiris.exe", scriptPath + 									#	for normal
-										"dev_osiris_nm.conf"]													#	irises
+										preConf + "osiris_nm.conf"]										#	irises
 			confType= "MEDIUM"																					#
 
 		elif configNumber == 2:																				#Try config
 			cmd 			= [	"./osiris.exe", scriptPath + 									#	for large
-										"dev_osiris_lg.conf"]													#	irises
+										preConf + "osiris_lg.conf"]										#	irises
 			confType	= "LARGE"																					#
 
 		############################################################################
@@ -109,9 +111,9 @@ for image in imageList.readlines( ):													#
 
 	print str(imageCounter)	+	"\t"	+ str(image),							#Print status
 	print " - " + str(configNumber) + "/", 				 						#	message
-	print str(confType) 	+ " - " 	+ osirisResult						#	
+	print str(confType) 	+ " - " 	+ osirisResult						#
 	
-	if imageCounter % 20 == 0:																			#Print status
+	if imageCounter % 50 == 0:																			#Print status
 		print "Fails: " + str(imageFails) + "/" + str(imageCounter)		#	message
 
 ######### LOOP STOPPED ########
