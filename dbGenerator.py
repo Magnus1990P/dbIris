@@ -8,8 +8,12 @@ import 	sys
 ################################################
 ##	VALIDATION OF PARAMETERS
 ################################################
-if len( sys.argv ) != 5:
-	print "Incorrect amount of parameters, eg. ./gen_imgdb.py filelist base_dir output number_of_lists"
+if len( sys.argv ) != 6:
+	print "Incorrect amount of parameters, eg. " 									+	\
+				"./dbGenerator.py 'img_list.txt' '/development/dbIris/' " + \
+				"'Number-of-img-sets' './imgDB.mat' './webIIC.txt'" 
+	print	"./dbGenerator.py 'fileList' 'base-directory' " 					+ \
+				"img-sets' 'output-matlab' 'output-webIIC'"
 	exit()
 
 
@@ -18,8 +22,9 @@ if len( sys.argv ) != 5:
 ################################################
 FNAME		= sys.argv[1]									#Store filename to read from
 BDIR		= sys.argv[2]									#Base dir to images
-OUTPUT	=	sys.argv[3]									#Output file
-LISTNUM	=	int( sys.argv[4] )					#Number of lists to be generated
+LISTNUM	=	int( sys.argv[3] )					#Number of lists to be generated
+OUTPUT	=	sys.argv[4]									#Output file for matlab
+WEB			= sys.argv[5]									#Output file for webIIC
 
 
 DB		= 0															#DB counter
@@ -29,7 +34,11 @@ CL		= 0															#Current Length of read string
 ################################################
 ##	FILE INITIATION
 ################################################
-WF = open( OUTPUT, 'w' )							#Open write file
+MF = open( OUTPUT, 'w' )							#Open write file
+MF.seek( 0 )													#	Go to start of file
+MF.truncate()													#	Delete its content
+
+WF = open( WEB, 'w' )									#Open write file
 WF.seek( 0 )													#	Go to start of file
 WF.truncate()													#	Delete its content
 
@@ -49,10 +58,10 @@ for line in IL:																#For each line in image list file
 		if DB != pDB:															#If chLQ images is starting
 			pDB = DB																#Update comparison variable
 			if DB > 1 and DB < LISTNUM:							#Add close from 2nd list
-				WF.write( '];\n\n' )									#		Write closing tag
+				MF.write( '];\n\n' )									#		Write closing tag
 	
 			if LISTNUM > DB: 												#Start new list
-				WF.write( 'imgList_' + str(DB) +			#		Write opening tag 
+				MF.write( 'imgList_' + str(DB) +			#		Write opening tag 
 									' = [\n')										#
 		CL = len( line )													#Update current string length
 
@@ -60,8 +69,8 @@ for line in IL:																#For each line in image list file
 	##	If this is the end of file (blank line at EOF)
 	##################################################
 	if len( line ) == 0 and DB >= LISTNUM:	#If length = 0 (last line) and at end
-		WF.write( '];\n\n' )									#		finish the writin
-		WF.close()
+		MF.write( '];\n\n' )									#		finish the writin
+		MF.close()
 		exit()
 
 	##########################################################
@@ -76,7 +85,10 @@ for line in IL:																#For each line in image list file
 				isfile( SN+'_mask.bmp' ) 	is True and \
 				isfile( SN+'_para.txt' ) 	is True and \
 				isfile( BDIR + line ) 		is True:
-			WF.write( "\t'" + str(line) + "';\n" )	#Write to file
+
+			MF.write( "\t'" + str(line) + "';\n" )	#Write to file
+			WF.write( line[ line.rfind('/')+1 : line.rfind('.') ] + '\n' )
+
 		else:
 			print "NOT FOUND: " + str(line)
 
