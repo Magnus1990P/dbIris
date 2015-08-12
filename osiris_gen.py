@@ -4,11 +4,11 @@
 ################################################################################
 ##	Imports
 ################################################################################
-import sys
-import subprocess
-import re
-import os.path
-
+import 	sys
+import 	subprocess
+import 	re
+import 	os.path
+from		PIL import Image
 ################################################################################
 ##	Variables
 ################################################################################
@@ -58,8 +58,13 @@ for image in imageList.readlines( ):													#
 	osirisOutput 	= ""																					#Reset output
 	configNumber	= 0																						#Reset config num
 	imageCounter	= imageCounter + 1														#inc counter
-	image 				= image.rstrip("\n\0\r\t")[len(orgImgPath):]	#Rm trailing chars
-	
+	image 				= image.rstrip("\n")[len(orgImgPath):]	#Rm trailing chars
+
+	im						=	Image.open( image.rstrip("\n") )
+	width					= im.size[1]
+	height				= im.size[2]
+	size					= ( width*height ) / 1000
+
 	#print str(imageCounter) + ":\t" + str(image)					#Print image title
 
 	currentImage.seek(  0 )																#Start of file
@@ -76,12 +81,12 @@ for image in imageList.readlines( ):													#
 										preConf + "osiris_sm.conf"]										#	irises
 			confType= "SMALL"																						#
 
-		elif configNumber == 1:																				#Try config
+		elif configNumber == 1 and size >= 125:												#Try config
 			cmd 			= [	"./osiris.exe", scriptPath + 									#	for normal
 										preConf + "osiris_nm.conf"]										#	irises
 			confType= "MEDIUM"																					#
 
-		elif configNumber == 2:																				#Try config
+		elif configNumber == 2 and size >= 1500:											#Try config
 			cmd 			= [	"./osiris.exe", scriptPath + 									#	for large
 										preConf + "osiris_lg.conf"]										#	irises
 			confType	= "LARGE"																					#
