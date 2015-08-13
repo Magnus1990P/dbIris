@@ -76,7 +76,7 @@ for image in imageList.readlines( ):													#
 	##		If no error occurs proceed
 	##############################################################################
 	while configNumber < 3 and osirisResult == "FAIL":							#Loop configs
-		if configNumber == 0:																					#Try config
+		if configNumber == 0 and size <= 300:													#Try config
 			cmd 			= [	"./osiris.exe", scriptPath + 									#	for small
 										preConf + "osiris_sm.conf"]										#	irises
 			confType= "SMALL"																						#
@@ -86,7 +86,7 @@ for image in imageList.readlines( ):													#
 										preConf + "osiris_nm.conf"]										#	irises
 			confType= "MEDIUM"																					#
 
-		elif configNumber == 2 and size >= 1400:											#Try config
+		elif configNumber == 2 and size >= 1500:											#Try config
 			cmd 			= [	"./osiris.exe", scriptPath + 									#	for large
 										preConf + "osiris_lg.conf"]										#	irises
 			confType	= "LARGE"																					#
