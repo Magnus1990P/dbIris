@@ -60,9 +60,9 @@ for image in imageList.readlines( ):													#
 	imageCounter	= imageCounter + 1														#inc counter
 	image 				= image.rstrip("\n")[len(orgImgPath):]	#Rm trailing chars
 
-	im						=	Image.open( image.rstrip("\n") )
-	width					= im.size[1]
-	height				= im.size[2]
+	im						=	Image.open( orgImgPath + image )
+	width					= im.size[0]
+	height				= im.size[1]
 	size					= ( width*height ) / 1000
 
 	#print str(imageCounter) + ":\t" + str(image)					#Print image title
@@ -81,12 +81,12 @@ for image in imageList.readlines( ):													#
 										preConf + "osiris_sm.conf"]										#	irises
 			confType= "SMALL"																						#
 
-		elif configNumber == 1 and size >= 125:												#Try config
+		elif configNumber == 1 and size >= 120:												#Try config
 			cmd 			= [	"./osiris.exe", scriptPath + 									#	for normal
 										preConf + "osiris_nm.conf"]										#	irises
 			confType= "MEDIUM"																					#
 
-		elif configNumber == 2 and size >= 1500:											#Try config
+		elif configNumber == 2 and size >= 1400:											#Try config
 			cmd 			= [	"./osiris.exe", scriptPath + 									#	for large
 										preConf + "osiris_lg.conf"]										#	irises
 			confType	= "LARGE"																					#
