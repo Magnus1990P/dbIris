@@ -8,7 +8,11 @@ import 	sys
 import 	subprocess
 import 	re
 import 	os.path
+import 	os
+import 	glob
 from		PIL import Image
+from		time import sleep
+
 ################################################################################
 ##	Variables
 ################################################################################
@@ -25,6 +29,39 @@ regExp 				= {'ERROR':re.compile("Segmentation|fault|Error|" + 	#
 																		"error|ERROR|SIGKILL|" 			+		#
 																		"cannot|Cannot"),								#
 					 			 'WARNING':re.compile("Warning|warning|WARNING")}		#
+irisMin				= 60
+pupilMin			= 15
+
+def validateGen( nm, tresh ):
+	nm 		= "img_processed" + nm[ nm.find("/") : nm.rfind(".") ] + "_para.txt"
+	t 		= None
+	try:
+		f  		= open(nm, "r")
+		t 		= f.read()
+		f.close()
+		print "File OPENED"
+	except:
+		print "No open file!"
+		return False
+	l 		= t.strip("\n\t\r ").split("\n")
+	l[2] 	= map( float, l[2].strip("\n\t\r ").split(" ") )
+	l[3] 	= map( float, l[3].strip("\n\t\r ").split(" ") )
+	
+	pupil =	[	min( l[2][::3] ),		max( l[2][::3] ), \
+						min( l[2][1::3] ), 	max( l[2][1::3] ) ]
+
+	iris	=	[	min( l[3][::3] ),		max( l[3][::3] ), \
+						min( l[3][1::3] ), 	max( l[3][1::3] ) ]
+
+	if(iris[1] - iris[0]) >= tresh and (iris[3] - iris[2]) >= tresh:
+		print "\t! " + str(iris[1]-iris[0])
+		return True
+
+	fl = glob.glob( nm[ : nm.rfind("_")+1] + "*" )
+	for f in fl:
+		print "Removing: " + str(f)
+		os.remove( f )
+	return False
 
 
 ################################################################################
@@ -59,7 +96,7 @@ for image in imageList.readlines( ):													#
 	configNumber	= 0																						#Reset config num
 	imageCounter	= imageCounter + 1														#inc counter
 	image 				= image.rstrip("\n")[len(orgImgPath):]	#Rm trailing chars
-
+	
 	im						=	Image.open( orgImgPath + image )
 	width					= im.size[0]
 	height				= im.size[1]
@@ -75,44 +112,67 @@ for image in imageList.readlines( ):													#
 	##		If config fails try the next config file
 	##		If no error occurs proceed
 	##############################################################################
-	while configNumber < 3 and osirisResult == "FAIL":							#Loop configs
-		if configNumber == 0 and size <= 300:													#Try config
-			cmd 			= [	"./osiris.exe", scriptPath + 									#	for small
-										preConf + "osiris_sm.conf"]										#	irises
-			confType= "SMALL"																						#
+	while configNumber < 3 and osirisResult == "FAIL":						#Loop configs
+		cmd = None;
+		if width == 400 and height == 300:													#UBIRIS
+			if configNumber == 0:
+				cmd 			= [	"./osiris.exe", scriptPath + 							#	for small
+											preConf + "osiris_ubiris_b.conf"]					#	irises
+				confType= "UBIRIS_B"																		#
+			else:
+				cmd 			= [	"./osiris.exe", scriptPath + 							#	for small
+											preConf + "osiris_ubiris_2a.conf"]				#	irises
+				confType= "UBIRIS_A"																		#
+				configNumber = 3
 
-		elif configNumber == 1 and size >= 120:												#Try config
-			cmd 			= [	"./osiris.exe", scriptPath + 									#	for normal
-										preConf + "osiris_nm.conf"]										#	irises
-			confType= "MEDIUM"																					#
+		else:
+			#if configNumber == 0 and size <= 300:											#Try config
+			if size <= 800 and configNumber == 0:
+				cmd 			= [	"./osiris.exe", scriptPath + 							#	for small
+											preConf + "osiris_sm.conf"]								#	irises
+				confType= "SMALL"																				#
 
-		elif configNumber == 2 and size >= 1500:											#Try config
-			cmd 			= [	"./osiris.exe", scriptPath + 									#	for large
-										preConf + "osiris_lg.conf"]										#	irises
-			confType	= "LARGE"																					#
+			#elif configNumber == 1 and size <= 1000:									#Try config
+			elif size <= 1200 and configNumber == 1:									#Try config
+				cmd 			= [	"./osiris.exe", scriptPath + 							#	for normal
+										preConf + "osiris_nm.conf"]									#	irises
+				confType= "MEDIUM"																			#
+
+			#elif configNumber == 2 and size > 1000:									#Try config
+			#elif size > 1000:
+			else:
+				cmd 			= [	"./osiris.exe", scriptPath + 							#	for large
+										preConf + "osiris_lg.conf"]									#	irises
+				confType	= "LARGE"																			#
 
 		############################################################################
 		##	Try to execute OSIRIS on current image
-		##
 		############################################################################
-		try:																													#Process the
-			osirisOutput = subprocess.check_output(cmd, 								#	image using
+		try:																												#Process the
+			if cmd is not None:
+				osirisOutput = subprocess.check_output(cmd, 							#	image using
 																				stderr=subprocess.STDOUT)	#	OSIRIS
-		except subprocess.CalledProcessError as e:										#If failure
-			osirisResult	= "FAIL"																			#Set result   
+		except subprocess.CalledProcessError as e:									#If failure
+			osirisResult	= "FAIL"																		#	Set result   
 		
-		if regExp['ERROR'].search( osirisOutput ) is None:						#If no errors
-			osirisResult = "SUCCESS"																		# occured
-
-		configNumber = configNumber + 1; 															#Inc number
+		if regExp['ERROR'].search( osirisOutput ) is None:
+			osirisResult = "SUCCESS"																	# occured
+		else:
+			osirisResult = "FAIL"
+		
+		#print str(imageCounter)	+	"\t"	+ str(image),								#Print status
+		#print " - " + str(configNumber) + "/", 				 							#	message
+		#print str(confType) 	+ " - " 	+ osirisResult							#
+		
+		configNumber = configNumber + 1; 														#Inc number
 	#LOOP CONFIGURATIONS
 
-	if osirisResult == "FAIL":																			#If fail
-		imageFails = imageFails + 1																		#	inc count
+	if osirisResult == "FAIL":																		#If fail
+		imageFails = imageFails + 1																	#	inc count
 
 	#Write result to file
-	processedFile.write( str( image ) + "\n" )											#Write result
-	currentImage.truncate( )																				#Truncate file
+	processedFile.write( str( image ) + "\n" )										#Write result
+	currentImage.truncate( )																			#Truncate file
 
 	print str(imageCounter)	+	"\t"	+ str(image),							#Print status
 	print " - " + str(configNumber) + "/", 				 						#	message
