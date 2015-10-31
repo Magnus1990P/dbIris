@@ -84,12 +84,13 @@ for line in IL:																#For each line in image list file
 		if	isfile( SN+'_segm.bmp' ) 	is True and \
 				isfile( SN+'_mask.bmp' ) 	is True and \
 				isfile( SN+'_para.txt' ) 	is True and \
-				isfile( BDIR + line ) 		is True:
+				isfile( BDIR + "db_periocular/" + line ) 		is True:
 
 			MF.write( "\t'" + str(line) + "';\n" )	#Write to file
-			WF.write( line[ line.rfind('/')+1 : line.rfind('.') ] + '\n' )
+			WF.write( "1:" + line + ":" + line[ line.rfind('/')+1 : line.rfind('.') ] + '\n' )
 
 		else:
+			WF.write( "0:" + line + ":" + line[ line.rfind('/')+1 : line.rfind('.') ] + '\n' )
 			print "NOT FOUND: " + str(line)
 
 WF.close()																		#Close write file
