@@ -8,11 +8,11 @@ import 	sys
 ################################################
 ##	VALIDATION OF PARAMETERS
 ################################################
-if len( sys.argv ) != 6:
+if len( sys.argv ) != 5:
 	print "Incorrect amount of parameters, eg. " 									+	\
-				"./dbGenerator.py 'img_list.txt' '/development/dbIris/' " + \
+				"./dbGenerator.py 'img_list.txt' " + \
 				"'Number-of-img-sets' './imgDB.mat' './webIIC.txt'" 
-	print	"./dbGenerator.py 'fileList' 'base-directory' " 					+ \
+	print	"./dbGenerator.py 'fileList'  " 					+ \
 				"img-sets' 'output-matlab' 'output-webIIC'"
 	exit()
 
@@ -21,10 +21,9 @@ if len( sys.argv ) != 6:
 ##	VARIABLES
 ################################################
 FNAME		= sys.argv[1]									#Store filename to read from
-BDIR		= sys.argv[2]									#Base dir to images
-LISTNUM	=	int( sys.argv[3] )					#Number of lists to be generated
-OUTPUT	=	sys.argv[4]									#Output file for matlab
-WEB			= sys.argv[5]									#Output file for webIIC
+LISTNUM	=	int( sys.argv[2] )					#Number of lists to be generated
+OUTPUT	=	sys.argv[3]									#Output file for matlab
+WEB			= sys.argv[4]									#Output file for webIIC
 
 
 DB		= 0															#DB counter
@@ -84,7 +83,7 @@ for line in IL:																#For each line in image list file
 		if	isfile( SN+'_segm.bmp' ) 	is True and \
 				isfile( SN+'_mask.bmp' ) 	is True and \
 				isfile( SN+'_para.txt' ) 	is True and \
-				isfile( BDIR + "db_periocular/" + line ) 		is True:
+				isfile( line ) 		is True:
 
 			MF.write( "\t'" + str(line) + "';\n" )	#Write to file
 			WF.write( "1:" + line + ":" + line[ line.rfind('/')+1 : line.rfind('.') ] + '\n' )
