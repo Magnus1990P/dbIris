@@ -21,6 +21,7 @@ import	math
 BASEPATH			= "/development/dbIris/"
 orgImgPath 		= BASEPATH + "db_periocular/"
 savImgPath 		= BASEPATH + "img_processed/"
+savImgPath 		= BASEPATH + "man_parameters/"
 imageCounter	= 0
 green					= (0, 255, 0)
 
@@ -28,6 +29,7 @@ green					= (0, 255, 0)
 ##	Sort coordinates in the order right to left
 ################################################################################
 def sortCoords( D ):
+	print "\tSorting coordinates",
 	coord = json.loads( base64.b64decode( D ) )
 
 	if int(coord[2]['X']) > int( coord[0]['X'] ):
@@ -44,6 +46,7 @@ def sortCoords( D ):
 		c 				= coord[1]
 		coord[1]	= coord[0]
 		coord[0]	= c
+	print "\t\t\tDone with sorting"
 
 	return coord
 
@@ -52,11 +55,12 @@ def sortCoords( D ):
 ##	Draw circles around pupil and iris, then save to folder
 ################################################################################
 def drawCircles( fname, cX, cY, rP, rI ):
-	sname 		= savImgPath + fname[ fname.rfind("/")+1 : -4 ] + "_segm.bmp"
+	sname 		= savImgPath + fname[ fname.rfind("/")+1 : fname.rfind(".")  ] + "_segm.bmp"
 							#left    top   Right  Bottom
 	boxPupil	= [cX-rP, cY-rP, cX+rP, cY+rP ]
 	boxIris		= [cX-rI, cY-rI, cX+rI, cY+rI ]
 
+	print "\tDrawing pupil and iris circle image",
 	im 				= Image.open( fname ).convert("LA").convert("RGB")
 	size 			= im.size
 	draw			= ImageDraw.Draw(im)
@@ -64,14 +68,17 @@ def drawCircles( fname, cX, cY, rP, rI ):
 	draw.ellipse(boxIris, 	outline=green )
 	del draw
 	im.save( sname )
+	print "\tDone drawing circle"
 
-	sname 		= savImgPath + fname[ fname.rfind("/")+1 : -4 ] + "_mask.bmp"
+	print "\tGenerating binary mask for image",
+	sname 		= savImgPath + fname[ fname.rfind("/")+1 : fname.rfind(".")  ] + "_mask.bmp"
 	im 				= Image.new("RGB", size, "black")
 	draw			= ImageDraw.Draw( im )
 	draw.ellipse(boxIris, 	fill=(255,255,255) )
 	draw.ellipse(boxPupil, 	fill=(0,0,0) )
 	del draw
 	im.save( sname )	
+	print "\tDone drawing circle"
 
 	return
 
@@ -92,7 +99,7 @@ def calcPoints(cX, cY, R, N):
 			tA = 2*math.pi + tA
 		pts.extend( [tX, tY, tA] )
 		a = a + inc
-	print "\tcoordinates calculated"
+	print "\t\tcoordinates calculated"
 	return pts
 
 
@@ -100,7 +107,7 @@ def calcPoints(cX, cY, R, N):
 ##	Draw circles around pupil and iris, then save to folder
 ################################################################################
 def calcParams( fname, cX, cY, rP, rI ):
-	sname 			= savImgPath + fname[ fname.rfind("/")+1 : -4 ] + "_para.txt"
+	sname 			= savImgPath + fname[ fname.rfind("/")+1 : fname.rfind(".") ] + "_para.txt"
 	circPupil 	= 2 * rP * math.pi
 	circIris		= 2 * rI * math.pi
 	pointsPN		= int( circPupil/3 );
@@ -114,7 +121,7 @@ def calcParams( fname, cX, cY, rP, rI ):
 	ptsP = calcPoints(cX, cY, rP, pointsPN)
 	ptsI = calcPoints(cX, cY, rI, pointsIN)
 
-	print "\tWriting parameters to file: " + str(sname)
+	print "\tWriting parameters to file: ",
 	f = open( sname, "w" );
 	f.write( str(pointsPN) + "\n" + str(pointsIN) + "\n" )
 	
@@ -126,7 +133,7 @@ def calcParams( fname, cX, cY, rP, rI ):
 		f.write( str(p) + " " )
 	
 	f.close()
-	print "\tParameters written"
+	print "\t\tParameters written"
 	
 
 
@@ -165,7 +172,7 @@ for data in cur.fetchall( ):													#
 
 	print str(imageCounter)	+	"\t"	+ str(image),								#Print status
 	print ""
-	
+	print ""
 ######### LOOP STOPPED ########
 
 
