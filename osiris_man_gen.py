@@ -19,18 +19,9 @@ import	math
 ##	Variables
 ################################################################################
 BASEPATH			= "/development/dbIris/"
-scriptPath 		= BASEPATH + "osiris_conf/osiris_man_param.conf"
 orgImgPath 		= BASEPATH + "db_periocular/"
-parImgPath 		= BASEPATH + "man_parameters/"
-curFileImg		= BASEPATH + "osiris_current_img.txt"
+savImgPath 		= BASEPATH + "img_processed/"
 imageCounter	= 0
-imageFails		= 0
-regExp 				= {'ERROR':re.compile("Segmentation|fault|Error|" + 	#
-																		"error|ERROR|SIGKILL|" 			+		#
-																		"cannot|Cannot"),								#
-					 			 'WARNING':re.compile("Warning|warning|WARNING")}		#
-cmd 					= [	"./osiris.exe", scriptPath ]
-confType			= "MANUAL"																					#
 green					= (0, 255, 0)
 
 ################################################################################
@@ -58,23 +49,23 @@ def sortCoords( D ):
 
 
 ################################################################################
-##	Draw circles around pupil and iris, then save to ./test/
+##	Draw circles around pupil and iris, then save to folder
 ################################################################################
 def drawCircles( fname, cX, cY, rP, rI ):
-	sname 		= parImgPath + fname[ fname.rfind("/")+1 : -4 ] + "_segm.bmp"
+	sname 		= savImgPath + fname[ fname.rfind("/")+1 : -4 ] + "_segm.bmp"
 							#left    top   Right  Bottom
 	boxPupil	= [cX-rP, cY-rP, cX+rP, cY+rP ]
 	boxIris		= [cX-rI, cY-rI, cX+rI, cY+rI ]
 
 	im 				= Image.open( fname ).convert("LA").convert("RGB")
-	size = im.size
+	size 			= im.size
 	draw			= ImageDraw.Draw(im)
 	draw.ellipse(boxPupil, 	outline=green )
 	draw.ellipse(boxIris, 	outline=green )
 	del draw
 	im.save( sname )
 
-	sname 		= parImgPath + fname[ fname.rfind("/")+1 : -4 ] + "_mask.bmp"
+	sname 		= savImgPath + fname[ fname.rfind("/")+1 : -4 ] + "_mask.bmp"
 	im 				= Image.new("RGB", size, "black")
 	draw			= ImageDraw.Draw( im )
 	draw.ellipse(boxIris, 	fill=(255,255,255) )
@@ -86,7 +77,7 @@ def drawCircles( fname, cX, cY, rP, rI ):
 
 
 ################################################################################
-##	Draw circles around pupil and iris, then save to ./test/
+##	Calculate points along circumference of the eye
 ################################################################################
 def calcPoints(cX, cY, R, N):
 	print "\tCalculating coordinates: ",
@@ -106,10 +97,10 @@ def calcPoints(cX, cY, R, N):
 
 
 ################################################################################
-##	Draw circles around pupil and iris, then save to ./test/
+##	Draw circles around pupil and iris, then save to folder
 ################################################################################
 def calcParams( fname, cX, cY, rP, rI ):
-	sname 			= parImgPath + fname[ fname.rfind("/")+1 : -4 ] + "_para.txt"
+	sname 			= savImgPath + fname[ fname.rfind("/")+1 : -4 ] + "_para.txt"
 	circPupil 	= 2 * rP * math.pi
 	circIris		= 2 * rI * math.pi
 	pointsPN		= int( circPupil/3 );
@@ -141,16 +132,12 @@ def calcParams( fname, cX, cY, rP, rI ):
 
 
 
-
 ################################################################################
 ##	Validate parameters
 ################################################################################
-currentImage	= open( curFileImg, "r+" )											#rw cur img
-currentImage.truncate( )																			#remove file
-
 db 		= MySQLdb.connect(host="localhost", user="root", passwd="toor", db="webIIC")
 cur 	= db.cursor()
-cur.execute("SELECT AID, ORG, COORD FROM image WHERE COORD!='' LIMIT 5")
+cur.execute("SELECT AID, ORG, COORD FROM image WHERE COORD!=''")
 
 
 
@@ -166,8 +153,6 @@ for data in cur.fetchall( ):													#
 	print imageCounter,
 	print image
 
-	currentImage.seek(  0 )															#Start of file
-	currentImage.write( image )													#Write filename to file
 	coords = sortCoords( data[2] )											#Sort coordinates
 
 	rP		= (int( coords[0]['X'] ) - int( coords[1]['X'] ) ) / 2
@@ -178,44 +163,9 @@ for data in cur.fetchall( ):													#
 	drawCircles( data[1], cX, cY, rP, rI )							#Gen BW img w/green circle
 	calcParams(  data[1], cX, cY, rP, rI )							#Calc points on circle
 
-	print "\tgenerating osiris_config"
-	cOrgCont = open(scriptPath + ".org", "r").read()
-	cCur = open(scriptPath, "w")
-	cCur.write(cOrgCont)
-	cCur.write("\n")
-	cCur.write("Minimum diameter for pupil = " + str((2*rP)-5) + "\n")
-	cCur.write("Maximum diameter for pupil = " + str((2*rP)+5) + "\n")
-	cCur.write("Minimum diameter for iris  = " + str((2*rI)-5) + "\n")
-	cCur.write("Maximum diameter for iris  = " + str((2*rI)+5) + "\n")
-	cCur.close();
-	print "\tgenerated"
-
-	print "\tRunning OSIRIS v4.1 on current image"
-
-	try:																												#Process the
-		osirisOutput = subprocess.check_output(cmd, 							#	image using
-															stderr=subprocess.STDOUT)				#	OSIRIS
-	except subprocess.CalledProcessError as e:									#If failure
-		osirisResult	= "FAIL"																		#	Set result   
-
-	if regExp['ERROR'].search( osirisOutput ) is None:
-		osirisResult = "SUCCESS"																	# occured
-	else:
-		osirisResult = "FAIL"
-	if osirisResult == "FAIL":																	#If fail
-		imageFails = imageFails + 1																#	inc count
-
-	print "\tOSIRIS v4.1 finished"
-
-	#Write result to file
-	currentImage.truncate( )																		#Truncate file
-
 	print str(imageCounter)	+	"\t"	+ str(image),								#Print status
-	print str(confType) 
 	print ""
 	
 ######### LOOP STOPPED ########
-
-currentImage.close(  )																						#Close file
 
 
