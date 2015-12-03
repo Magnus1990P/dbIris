@@ -9,13 +9,11 @@ import 	subprocess
 import 	re
 import 	os.path
 import 	os
-import 	glob
 from 		PIL	 import	Image, ImageDraw
-from		time import sleep
 import	MySQLdb
 import	base64
 import	json
-import cv2
+import	math
 
 ################################################################################
 ##	Variables
@@ -24,7 +22,6 @@ BASEPATH			= "/development/dbIris/"
 scriptPath 		= BASEPATH + "osiris_conf/osiris_man_param.conf"
 orgImgPath 		= BASEPATH + "db_periocular/"
 parImgPath 		= BASEPATH + "man_parameters/"
-saveFile			= BASEPATH + "osiris_processed_imgs.txt"
 curFileImg		= BASEPATH + "osiris_current_img.txt"
 imageCounter	= 0
 imageFails		= 0
@@ -32,22 +29,13 @@ regExp 				= {'ERROR':re.compile("Segmentation|fault|Error|" + 	#
 																		"error|ERROR|SIGKILL|" 			+		#
 																		"cannot|Cannot"),								#
 					 			 'WARNING':re.compile("Warning|warning|WARNING")}		#
-
+cmd 					= [	"./osiris.exe", scriptPath ]
+confType			= "MANUAL"																					#
+green					= (0, 255, 0)
 
 ################################################################################
-##	Validate parameters
+##	Sort coordinates in the order right to left
 ################################################################################
-processedFile = open( saveFile, 	"a"  )											#w processed imgs
-currentImage	= open( curFileImg, "r+" )											#rw cur img
-currentImage.truncate( )																			#remove file
-
-processedFile.write("---%%%%----\tNEW RUN\t\t---%%%---\n")
-
-db 		= MySQLdb.connect(host="localhost", user="root", passwd="toor", db="webIIC")
-cur 	= db.cursor()
-cur.execute("SELECT AID, ORG, COORD FROM image WHERE COORD!=''")
-
-
 def sortCoords( D ):
 	coord = json.loads( base64.b64decode( D ) )
 
@@ -70,6 +58,103 @@ def sortCoords( D ):
 
 
 ################################################################################
+##	Draw circles around pupil and iris, then save to ./test/
+################################################################################
+def drawCircles( fname, cX, cY, rP, rI ):
+	sname 		= parImgPath + fname[ fname.rfind("/")+1 : -4 ] + "_segm.bmp"
+							#left    top   Right  Bottom
+	boxPupil	= [cX-rP, cY-rP, cX+rP, cY+rP ]
+	boxIris		= [cX-rI, cY-rI, cX+rI, cY+rI ]
+
+	im 				= Image.open( fname ).convert("LA").convert("RGB")
+	size = im.size
+	draw			= ImageDraw.Draw(im)
+	draw.ellipse(boxPupil, 	outline=green )
+	draw.ellipse(boxIris, 	outline=green )
+	del draw
+	im.save( sname )
+
+	sname 		= parImgPath + fname[ fname.rfind("/")+1 : -4 ] + "_mask.bmp"
+	im 				= Image.new("RGB", size, "black")
+	draw			= ImageDraw.Draw( im )
+	draw.ellipse(boxIris, 	fill=(255,255,255) )
+	draw.ellipse(boxPupil, 	fill=(0,0,0) )
+	del draw
+	im.save( sname )	
+
+	return
+
+
+################################################################################
+##	Draw circles around pupil and iris, then save to ./test/
+################################################################################
+def calcPoints(cX, cY, R, N):
+	print "\tCalculating coordinates: ",
+	inc = (2*math.pi) / N
+	pts = [ cX-R, cY, 0 ]
+	a = inc
+	while a < 2*math.pi:
+		tX = int( cX + R * math.cos( a ) )
+		tY = int( cY + R * math.sin( a ) )
+		tA = math.atan2( (tY-cY), (tX-cX) )
+		if tA < 0:
+			tA = 2*math.pi + tA
+		pts.extend( [tX, tY, tA] )
+		a = a + inc
+	print "\tcoordinates calculated"
+	return pts
+
+
+################################################################################
+##	Draw circles around pupil and iris, then save to ./test/
+################################################################################
+def calcParams( fname, cX, cY, rP, rI ):
+	sname 			= parImgPath + fname[ fname.rfind("/")+1 : -4 ] + "_para.txt"
+	circPupil 	= 2 * rP * math.pi
+	circIris		= 2 * rI * math.pi
+	pointsPN		= int( circPupil/3 );
+	pointsIN		= int( circIris/3 );
+
+	if pointsPN > 125:
+		pointsPN	= 125
+	if pointsIN > 200:
+		pointsIN	= 200
+
+	ptsP = calcPoints(cX, cY, rP, pointsPN)
+	ptsI = calcPoints(cX, cY, rI, pointsIN)
+
+	print "\tWriting parameters to file: " + str(sname)
+	f = open( sname, "w" );
+	f.write( str(pointsPN) + "\n" + str(pointsIN) + "\n" )
+	
+	for p in ptsP:
+		f.write( str(p) + " " )
+	f.write("\n" )
+
+	for p in ptsI:
+		f.write( str(p) + " " )
+	
+	f.close()
+	print "\tParameters written"
+	
+
+
+
+
+
+################################################################################
+##	Validate parameters
+################################################################################
+currentImage	= open( curFileImg, "r+" )											#rw cur img
+currentImage.truncate( )																			#remove file
+
+db 		= MySQLdb.connect(host="localhost", user="root", passwd="toor", db="webIIC")
+cur 	= db.cursor()
+cur.execute("SELECT AID, ORG, COORD FROM image WHERE COORD!='' LIMIT 5")
+
+
+
+################################################################################
 ## Loop through the images in list
 ################################################################################
 for data in cur.fetchall( ):													#
@@ -81,74 +166,56 @@ for data in cur.fetchall( ):													#
 	print imageCounter,
 	print image
 
-	currentImage.seek(  0 )																			#Start of file
-	currentImage.write( image )														#Write filename to file
+	currentImage.seek(  0 )															#Start of file
+	currentImage.write( image )													#Write filename to file
+	coords = sortCoords( data[2] )											#Sort coordinates
 
-	coords = sortCoords( data[2] )
+	rP		= (int( coords[0]['X'] ) - int( coords[1]['X'] ) ) / 2
+	cX		=  int( coords[0]['X'] ) - rP
+	cY		=	 int( coords[0]['Y'] ) 
+	rI		= (cX - int(coords[2]['X']))
 
-	pRad	= (int( coords[0]['X'] ) - int( coords[1]['X'] ) ) / 2
-	pCX		= int( coords[0]['X'] ) - pRad
-	pCY		=	int( coords[0]['Y'] ) 
-	iRad	= (pCX - int(coords[2]['X']))
-	
-	im 		= Image.open( data[1] ).convert("LA").convert("RGB")
-	draw	= ImageDraw.Draw(im)
-	draw.ellipse([pCX-pRad,pCY-pRad, pCX+pRad, pCY+pRad], outline=(0,255,0))
-	draw.ellipse([pCX-iRad,pCY-iRad, pCX+iRad, pCY+iRad], outline=(0,255,0))
-	
-	del draw
-	
-	print "./img_processed/"+image[image.rfind("/")+1:]
+	drawCircles( data[1], cX, cY, rP, rI )							#Gen BW img w/green circle
+	calcParams(  data[1], cX, cY, rP, rI )							#Calc points on circle
 
-	break
+	print "\tgenerating osiris_config"
+	cOrgCont = open(scriptPath + ".org", "r").read()
+	cCur = open(scriptPath, "w")
+	cCur.write(cOrgCont)
+	cCur.write("\n")
+	cCur.write("Minimum diameter for pupil = " + str((2*rP)-5) + "\n")
+	cCur.write("Maximum diameter for pupil = " + str((2*rP)+5) + "\n")
+	cCur.write("Minimum diameter for iris  = " + str((2*rI)-5) + "\n")
+	cCur.write("Maximum diameter for iris  = " + str((2*rI)+5) + "\n")
+	cCur.close();
+	print "\tgenerated"
 
-	##############################################################################
-	## Try config
-	##############################################################################
-	cmd 			= [	"./osiris.exe", scriptPath ]
-	confType= "MANUAL"																					#
+	print "\tRunning OSIRIS v4.1 on current image"
 
-	############################################################################
-	##	Try to execute OSIRIS on current image
-	############################################################################
 	try:																												#Process the
-		if cmd is not None:
-			osirisOutput = subprocess.check_output(cmd, 						#	image using
-																		stderr=subprocess.STDOUT)	#	OSIRIS
+		osirisOutput = subprocess.check_output(cmd, 							#	image using
+															stderr=subprocess.STDOUT)				#	OSIRIS
 	except subprocess.CalledProcessError as e:									#If failure
 		osirisResult	= "FAIL"																		#	Set result   
-		
+
 	if regExp['ERROR'].search( osirisOutput ) is None:
 		osirisResult = "SUCCESS"																	# occured
 	else:
 		osirisResult = "FAIL"
-		
-	if osirisResult == "FAIL":																		#If fail
-		imageFails = imageFails + 1																	#	inc count
+	if osirisResult == "FAIL":																	#If fail
+		imageFails = imageFails + 1																#	inc count
+
+	print "\tOSIRIS v4.1 finished"
 
 	#Write result to file
-	processedFile.write( str( image ) + "\n" )										#Write result
-	currentImage.truncate( )																			#Truncate file
+	currentImage.truncate( )																		#Truncate file
 
-	print str(imageCounter)	+	"\t"	+ str(image),							#Print status
-	print " - " + str(configNumber) + "/", 				 						#	message
-	print str(confType) 	+ " - " 	+ osirisResult						#
+	print str(imageCounter)	+	"\t"	+ str(image),								#Print status
+	print str(confType) 
+	print ""
 	
-	if imageCounter % 50 == 0:																			#Print status
-		print "Fails: " + str(imageFails) + "/" + str(imageCounter)		#	message
-
 ######### LOOP STOPPED ########
 
 currentImage.close(  )																						#Close file
-processedFile.close( )																						#Close file
 
-
-################################################################################
-## Print final status message
-################################################################################
-print
-print
-print "STATUS: "	+	str(imageCounter	-	imageFails) +	"/"	+	str(imageCounter)
-print
-print
 
