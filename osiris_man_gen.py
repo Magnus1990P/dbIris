@@ -21,7 +21,6 @@ import	math
 BASEPATH			= "/development/dbIris/"
 orgImgPath 		= BASEPATH + "db_periocular/"
 savImgPath 		= BASEPATH + "img_processed/"
-savImgPath 		= BASEPATH + "man_parameters/"
 imageCounter	= 0
 green					= (0, 255, 0)
 
