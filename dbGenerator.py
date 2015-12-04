@@ -78,8 +78,8 @@ for line in IL:																#For each line in image list file
 	else:																				#If not last line
 																							#Create skeleton name
 		SN = "img_processed/" + line[ line.rfind('/')+1 : line.rfind('.')]
-																							#Check if file exists
 
+																							#Check if file exists
 		if	isfile( SN+'_segm.bmp' ) 	is True and \
 				isfile( SN+'_mask.bmp' ) 	is True and \
 				isfile( SN+'_para.txt' ) 	is True and \

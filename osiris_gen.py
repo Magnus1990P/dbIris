@@ -19,7 +19,6 @@ from		time import sleep
 BASEPATH			= "/development/dbIris/"
 scriptPath 		= BASEPATH + "osiris_conf/"
 orgImgPath 		= BASEPATH + "db_periocular/"
-saveFile			= BASEPATH + "osiris_processed_imgs.txt"
 curFileImg		= BASEPATH + "osiris_current_img.txt"
 confType			= "SMALL"
 imageCounter	= 0
@@ -29,8 +28,6 @@ regExp 				= {'ERROR':re.compile("Segmentation|fault|Error|" + 	#
 																		"error|ERROR|SIGKILL|" 			+		#
 																		"cannot|Cannot"),								#
 					 			 'WARNING':re.compile("Warning|warning|WARNING")}		#
-irisMin				= 60
-pupilMin			= 15
 
 
 ################################################################################
@@ -41,15 +38,13 @@ if len( sys.argv ) != 2:																			#
 	print	"'./osiris_gen.py img_list.dev.txt'"									#
 	exit()																											#
 
-fileListName = str( sys.argv[1] )
+fileListName = str( sys.argv[1] )															#Grab list name
 
-processedFile = open( saveFile, 	"a"  )											#w processed imgs
 currentImage	= open( curFileImg, "r+" )											#rw cur img
 currentImage.truncate( )																			#remove file
 
 imageList 		= open( fileListName, "r" )											#Read images
 print "Converting images in list: " + fileListName						#Status msg
-processedFile.write("---%%%%----\tNEW RUN\t\t---%%%---\n")
 
 
 ################################################################################
@@ -62,12 +57,9 @@ for image in imageList.readlines( ):													#
 	imageCounter	= imageCounter + 1														#inc counter
 	image 				= image.rstrip("\n")[len(orgImgPath):]				#Rm trailing chars
 	
-	im						=	Image.open( orgImgPath + image )
+	im						=	Image.open( orgImgPath + image )						#Grab image size
 	width					= im.size[0]
 	height				= im.size[1]
-
-	#print str(imageCounter) + ":\t" + str(image),					#Print image title
-	#print str(width) + "x" + str(height)
 
 	currentImage.seek(  0 )																#Start of file
 	currentImage.write( image )														#Write filename to file
@@ -77,7 +69,7 @@ for image in imageList.readlines( ):													#
 	##		If config fails try the next config file
 	##		If no error occurs proceed
 	##############################################################################
-	while configNumber < 3 and osirisResult == "FAIL":						#Loop configs
+	while configNumber < 3 and osirisResult == "FAIL":
 		cmd = None;
 		if configNumber == 0:
 			cmd 			= [	"./osiris.exe", scriptPath + "osiris_sm.conf"]
@@ -101,37 +93,38 @@ for image in imageList.readlines( ):													#
 		except subprocess.CalledProcessError as e:									#If failure
 			osirisResult	= "FAIL"																		#	Set result   
 		
+		############################################################################
+		##	Check to see if failure was detected
+		############################################################################
 		if regExp['ERROR'].search( osirisOutput ) is None:
-			osirisResult = "SUCCESS"																	# occured
+			osirisResult = "SUCCESS"																	
 		else:
 			osirisResult = "FAIL"
 		
-		#print str(imageCounter)	+	"\t"	+ str(image),								#Print status
-		#print " - " + str(configNumber) + "/", 				 							#	message
-		#print str(confType) 	+ " - " 	+ osirisResult							#
-		
 		configNumber = configNumber + 1; 														#Inc number
-	#LOOP CONFIGURATIONS
+
+	######### LOOP CONFIGURATIONS STOPPED ########
 
 	if osirisResult == "FAIL":																		#If fail
 		imageFails = imageFails + 1																	#	inc count
 
 	#Write result to file
-	processedFile.write( str( image ) + "\n" )										#Write result
 	currentImage.truncate( )																			#Truncate file
 
-	print str(imageCounter)	+	"\t"	+ str(image),							#Print status
-	print " - " + str(configNumber) + "/", 				 						#	message
-	print str(confType) 	+ " - " 	+ osirisResult						#
+	##############################################################################
+	##	Print current state of program
+	##############################################################################
+	print str(imageCounter)	+	"\t"	+ str(image),									#Print status
+	print " - " + str(configNumber) + "/", 				 								#	message
+	print str(confType) 	+ " - " 	+ osirisResult								#
 	
-	if imageCounter % 50 == 0:																			#Print status
-		print "Fails: " + str(imageFails) + "/" + str(imageCounter)		#	message
+	if imageCounter % 50 == 0:																		#Print status
+		print "Fails: " + str(imageFails) + "/" + str(imageCounter)	#	message
 
 ######### LOOP STOPPED ########
 
 
-currentImage.close(  )																						#Close file
-processedFile.close( )																						#Close file
+currentImage.close(  )																					#Close file
 
 
 ################################################################################
