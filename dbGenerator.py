@@ -20,15 +20,12 @@ if len( sys.argv ) != 5:
 ################################################
 ##	VARIABLES
 ################################################
-FNAME		= sys.argv[1]									#Store filename to read from
-LISTNUM	=	int( sys.argv[2] )					#Number of lists to be generated
-OUTPUT	=	sys.argv[3]									#Output file for matlab
-WEB			= sys.argv[4]									#Output file for webIIC
-
-
-DB		= 0															#DB counter
-pDB		= DB
-CL		= 0															#Current Length of read string
+FNAME			= sys.argv[1]								#Store filename to read from
+LISTNUM		=	int( sys.argv[2] )				#Number of lists to be generated
+OUTPUT		=	sys.argv[3]								#Output file for matlab
+WEB				= sys.argv[4]								#Output file for webIIC
+DB				= 0													#DB counter
+CL				= 0													#Current Length of read string
 
 ################################################
 ##	FILE INITIATION
@@ -45,24 +42,23 @@ RF = open( FNAME, 'r' )								#Open read file with images in
 IL = RF.read().split("\n")						#Read entire file into memory and split
 RF.close()														#close file
 
+MF.write("%s\n%s\n%s\n\n" %( "%"*80, "%%  Image Databse for MatLab", "%" *80) );
+
 ################################################
 ##	Loop through all filenames in file
 ################################################
-for line in IL:																#For each line in image list file 
+for line in IL:												#For each line in image list file 
 	################################################
 	##	IF length of string has changed (new list)
 	################################################
-	if CL != len( line ) :											#If change in string length
-		DB = DB + 1																#Increment DB counter
-		if DB != pDB:															#If chLQ images is starting
-			pDB = DB																#Update comparison variable
-			if DB > 1 and DB < LISTNUM:							#Add close from 2nd list
-				MF.write( '];\n\n' )									#		Write closing tag
+	if CL != len( line ) :												#If change in string length
+		DB = DB + 1																	#Increment DB counter
+		if DB > 1 and DB <= LISTNUM:								#Add close from 2nd list
+			MF.write( '];\n\n' )											#		Write closing tag
 	
-			if LISTNUM > DB: 												#Start new list
-				MF.write( 'imgList_' + str(DB) +			#		Write opening tag 
-									' = [\n')										#
-		CL = len( line )													#Update current string length
+		if LISTNUM >= DB: 													#Start new list
+			MF.write( 'imgList_' + str(DB) + ' = [\n')#		Write opening tag 
+		CL = len( line )														#Update current string length
 
 	##################################################
 	##	If this is the end of file (blank line at EOF)
@@ -92,7 +88,6 @@ for line in IL:																#For each line in image list file
 			WF.write( "0:" + line + ":" + line[ line.rfind('/')+1 : line.rfind('.') ] + '\n' )
 			print "NOT FOUND: " + str(line)
 
+MF.close()																		#Close write file
 WF.close()																		#Close write file
-
-
 
